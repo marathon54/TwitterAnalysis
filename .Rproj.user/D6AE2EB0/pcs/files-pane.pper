@@ -1,0 +1,9 @@
+{
+    "path" : "~/_data/TwitterAnalysis",
+    "sortOrder" : [
+        {
+            "ascending" : true,
+            "columnIndex" : 2
+        }
+    ]
+}

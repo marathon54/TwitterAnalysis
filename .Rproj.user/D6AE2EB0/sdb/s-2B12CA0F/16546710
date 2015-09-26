@@ -1,0 +1,17 @@
+{
+    "contents" : "---\ntitle: \"Analysis of Twitter Data in Libya\"\nauthor: \"Kevin A. Ryan (JHUAPL)\"\ndate: \"Friday, September 25, 2015\"\noutput:\n  html_document:\n    highlight: kate\n    theme: spacelab\n---\n\n\nStep 1: Ensure proper packages are installed.\n```{r eval=FALSE}\ninstall.packages(c(\"devtools\", \"rjson\", \"bit64\"))\n\n```\n\nStep 2: My personal infomation from Twitter API\n```{r eval=TRUE, cache=TRUE,warning=FALSE}\nlibrary(devtools)\nlibrary(httr)\nlibrary(twitteR)\n\ndownload.file(url=\"http://curl.haxx.se/ca/cacert.pem\", destfile=\"cacert.pem\")\n\nconsumer_key <- 'cD5uXJMuyJfLkodDvYYchEUuM'\nconsumer_secret <- 'FLVzv3HhHnsSr0qRfnq7ZmCdCWrQS24NUbnREUvHNFhEc89bVg'\naccess_token <- '740674741-PPuLbrOHGQCYqrh9C9E9AG8I57st4Akj1NBmB2V5'\naccess_secret <- 'oxsCu5UE9Q6QVowgd98Ds7qFeJIesI9Z3zGk5qDdP3S4m'\nsetup_twitter_oauth(consumer_key,\n                    consumer_secret,\n                    access_token,\n                    access_secret)\n\n#Grab from the Twitter pipeline the last 100 tweets, worldwide, that were marked with the hashtag 'libya'\nlibya<-searchTwitter(\"#libya\", n=500)\n\n## search based on a hashtag:\nsearchTwitter(\"#beer\", n=100)\nRtweets(n=37)\n\n## Search between two dates\nsearchTwitter('charlie sheen', since='2011-03-01', until='2011-03-02')\n\n## geocoded results\npats<-searchTwitter('patriots', geocode='42.375,-71.1061111,100mi', n = 1000)\n\n## using resultType\nsearchTwitter('world cup+brazil', resultType=\"popular\", n=150)\nsearchTwitter('from:hadleywickham', resultType=\"recent\", n=10)\n\n\n# Convert the tweets into a data frame\ndf<-do.call(\"rbind\", lapply(libya, as.data.frame))\ndim(df)\nView(df)\n\n```\n\nStep 3:  Convert the data frame into a corpus\n```{r}\nlibrary(tm)\nmyCorpus<-Corpus(VectorSource(df$text))\n\n```\n\n\n",
+    "created" : 1443200133257.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "345724088",
+    "id" : "16546710",
+    "lastKnownWriteTime" : 1443212355,
+    "path" : "~/_data/TwitterAnalysis/TwitterAnalysis.Rmd",
+    "project_path" : "TwitterAnalysis.Rmd",
+    "properties" : {
+        "tempName" : "Untitled1"
+    },
+    "source_on_save" : false,
+    "type" : "r_markdown"
+}

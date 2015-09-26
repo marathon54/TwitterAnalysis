@@ -1,0 +1,67 @@
+---
+title: "Analysis of Twitter Data in Libya"
+author: "Kevin A. Ryan (JHUAPL)"
+date: "Friday, September 25, 2015"
+output:
+  html_document:
+    highlight: kate
+    theme: spacelab
+---
+
+
+Step 1: Ensure proper packages are installed.
+```{r eval=FALSE}
+install.packages(c("devtools", "rjson", "bit64"))
+
+```
+
+Step 2: My personal infomation from Twitter API
+```{r eval=TRUE, cache=TRUE,warning=FALSE}
+library(devtools)
+library(httr)
+library(twitteR)
+
+download.file(url="http://curl.haxx.se/ca/cacert.pem", destfile="cacert.pem")
+
+consumer_key <- 'cD5uXJMuyJfLkodDvYYchEUuM'
+consumer_secret <- 'FLVzv3HhHnsSr0qRfnq7ZmCdCWrQS24NUbnREUvHNFhEc89bVg'
+access_token <- '740674741-PPuLbrOHGQCYqrh9C9E9AG8I57st4Akj1NBmB2V5'
+access_secret <- 'oxsCu5UE9Q6QVowgd98Ds7qFeJIesI9Z3zGk5qDdP3S4m'
+setup_twitter_oauth(consumer_key,
+                    consumer_secret,
+                    access_token,
+                    access_secret)
+
+#Grab from the Twitter pipeline the last 100 tweets, worldwide, that were marked with the hashtag 'libya'
+libya<-searchTwitter("#libya", n=500)
+
+## search based on a hashtag:
+searchTwitter("#beer", n=100)
+Rtweets(n=37)
+
+## Search between two dates
+searchTwitter('charlie sheen', since='2011-03-01', until='2011-03-02')
+
+## geocoded results
+pats<-searchTwitter('patriots', geocode='42.375,-71.1061111,100mi', n = 1000)
+
+## using resultType
+searchTwitter('world cup+brazil', resultType="popular", n=150)
+searchTwitter('from:hadleywickham', resultType="recent", n=10)
+
+
+# Convert the tweets into a data frame
+df<-do.call("rbind", lapply(libya, as.data.frame))
+dim(df)
+View(df)
+
+```
+
+Step 3:  Convert the data frame into a corpus
+```{r}
+library(tm)
+myCorpus<-Corpus(VectorSource(df$text))
+
+```
+
+
