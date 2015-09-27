@@ -11,10 +11,10 @@
     "project_path" : null,
     "properties" : {
         "caption" : "df",
-        "contentUrl" : "content?title=df&file=994081dd27e54a43a8a7367071ea4d78.htm",
-        "displayedObservations" : "205",
+        "contentUrl" : "content?title=df&file=15620f71627c439aa1a7e41d3d16b130.htm",
+        "displayedObservations" : "1000",
         "displayedVariables" : 16,
-        "totalObservations" : "205",
+        "totalObservations" : "1500",
         "variables" : "16"
     },
     "source_on_save" : false,
