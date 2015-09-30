@@ -1,0 +1,184 @@
+---
+title: "Hillary Clinton Analysis"
+author: "Kevin A. Ryan (JHUAPL)"
+date: "Monday, September 28, 2015"
+output: html_document
+---
+Setup code to enable access to Twitter API.  Explain the process here.  WHat is involved.
+
+```{r eval=FALSE, warning=FALSE}
+library(devtools)
+library(httr)
+library(rjson)
+library(bit64)
+library(twitteR)
+
+download.file(url="http://curl.haxx.se/ca/cacert.pem", destfile="cacert.pem")
+
+consumer_key <- 'cD5uXJMuyJfLkodDvYYchEUuM'
+consumer_secret <- 'FLVzv3HhHnsSr0qRfnq7ZmCdCWrQS24NUbnREUvHNFhEc89bVg'
+access_token <- '740674741-PPuLbrOHGQCYqrh9C9E9AG8I57st4Akj1NBmB2V5'
+access_secret <- 'oxsCu5UE9Q6QVowgd98Ds7qFeJIesI9Z3zGk5qDdP3S4m'
+setup_twitter_oauth(consumer_key,
+                    consumer_secret,
+                    access_token,
+                    access_secret)
+```
+
+
+```{r eval=FALSE}
+## retrieve tweets from Twitter
+library(twitteR)
+Clinton <-userTimeline('HillaryClinton' , n=1500, maxID=NULL, sinceID=NULL, includeRts=TRUE,excludeReplies=TRUE)
+
+# convert tweets to a data frame
+tweets.hc <- twListToDF(Clinton)
+
+#clean up wrap text feature
+for (i in c(1:2, 1500)) {
+cat(paste0("[", i, "] "))
+writeLines(strwrap(tweets.hc$text[i], 60))
+}
+
+#shortcut for saving tweets to local maching
+write.csv(tweets.hc, file = "clinton")
+```
+
+Build a corpus and clean up 
+```{r}
+#load the file saved locally
+clinton <- read.csv("~/_data/TwitterAnalysis/clinton")
+
+library(tm)
+# build a corpus, and specify the source to be character vectors
+myCorpus <- Corpus(VectorSource(clinton$text))
+# convert to lower case
+myCorpus <- tm_map(myCorpus, content_transformer(tolower))
+
+# remove URLs
+removeURL <- function(x) gsub("http[^[:space:]]*", "", x)
+myCorpus <- tm_map(myCorpus, content_transformer(removeURL))
+
+# remove anything other than English letters or space
+removeNumPunct <- function(x) gsub("[^[:alpha:][:space:]]*", "", x)
+myCorpus <- tm_map(myCorpus, content_transformer(removeNumPunct))
+
+#remove punctuation
+myCorpus <- tm_map(myCorpus, removePunctuation)
+
+#remove numbers
+myCorpus <- tm_map(myCorpus, removeNumbers)
+
+#need to explain the concept of stop words.....
+# add two extra stop words: "available" and "via"
+myStopwords <- c(stopwords('english'), "will", "hillari", "rt", "us")
+
+# remove stopwords from corpus
+myCorpus <- tm_map(myCorpus, removeWords, myStopwords)
+# remove extra whitespace
+myCorpus <- tm_map(myCorpus, stripWhitespace)
+
+# keep a copy of corpus to use later as a dictionary for stem completion
+myCorpusCopy <- myCorpus
+# stem words
+myCorpus <- tm_map(myCorpus, stemDocument)
+
+#Remove Empty Row
+#myCorpus <- myCorpus[-as.numeric(empty.rows)]
+```
+
+Stem Completion step
+```{r}
+library(tm)
+myCorpus <- Corpus(VectorSource(myCorpus))
+tdm <- TermDocumentMatrix(myCorpus, control = list(wordLengths = c(1, Inf)))
+```
+
+Frequent Words and Associations
+```{r warning=FALSE}
+library(tm)
+library(topicmodels)
+library(gridExtra)
+#(freq.terms <- findFreqTerms(tdm, lowfreq = 35, highfreq = 115))
+term.freq <- rowSums(as.matrix(tdm))
+term.freq <- subset(term.freq, term.freq >= 35)
+term.freq <- subset(term.freq, term.freq <= 115)
+df <- data.frame(term = names(term.freq), freq = term.freq)
+df$term <-factor(df$term, levels=df[order(df$freq), "term"])
+
+library(ggplot2)
+y<-ggplot(df, aes(x = term, y = freq)) + geom_bar(stat = "identity") +
+xlab("Terms") + ylab("Count") + coord_flip()
+ 
+grid.arrange(y, y, ncol=2)
+
+# which words are associated with the term "tax" ?
+(findAssocs(tdm, "tax", 0.2))
+
+```
+
+WOrd cloud mutherfucker!
+```{r}
+
+# plot word cloud
+library(wordcloud)
+par(mar=c(.5,.5,.5,.5))
+ m <- as.matrix(tdm)
+# calculate the frequency of words and sort it descendingly by frequency
+wordFreq <- sort(rowSums(m), decreasing=TRUE)
+wordFreq <- subset(wordFreq, wordFreq >= 5)
+wordFreq <- subset(wordFreq, wordFreq <= 115)
+df2 <- data.frame(term = names(wordFreq), freq = wordFreq)
+
+# word cloud
+set.seed(375) # to make it reproducible
+
+wordcloud(words=df2$term, freq=df2$freq, scale = c(1.5 ,.1),min.freq=5, random.order=T, fixed.asp=F, rot.per= 0, use.r.layout =T)
+```
+
+clustering....In the above dendrogram, we can see the topics in the tweets. Words \analysis", \network"
+and \social" are clustered into one group, because there are a couple of tweets on social network
+analysis. The second cluster from left comprises \positions", \postdoctoral" and \research", and
+they are clustered into one group because of tweets on vacancies of research and postdoctoral
+positions. We can also see cluster on time series, R packages, parallel computing, R codes and
+examples, and tutorial and slides. The rightmost three clusters consists of \r", \data"and\mining",
+which are the keywords of @RDataMining tweets.
+```{r}
+#remove sparse terms
+library(gridExtra)
+myTdm2 <- removeSparseTerms(tdm, sparse=0.97)
+m2 <- as.matrix(myTdm2)
+# cluster terms
+distMatrix <- dist(scale(m2))
+fit <- hclust(distMatrix, method="ward.D")
+par(mar=c(2,2,2,2))
+plot(fit, asp =1, cex=.75)
+# cut tree into 10 clusters
+rect.hclust(fit, k=10)
+```
+
+topic modeling2
+```{r}
+library(tm)
+library(topicmodels)
+library(gridExtra)
+
+
+dtm <- as.DocumentTermMatrix(tdm) #1437 documents
+rowTotals <- apply(dtm , 1, sum) #Find the sum of words in each Document
+dtm.new   <- dtm[rowTotals> 0, ]   #remove all docs without words
+clinton2 <- clinton[1:1437,] 
+
+lda <- LDA(dtm.new, k = 8)#Latent Dirichlet allocation (LDA)
+(term <- terms(lda, 6))
+term <- apply(term, MARGIN = 2, paste, collapse = ", ")
+topic <- topics(lda, 1)
+
+#SECOND TRY
+topics <- data.frame(date=as.Date(clinton2$created), topic)
+qplot(date, ..count.., data=topics, geom="density",fill=term[topic], position="stack")
+
+
+```
+
+

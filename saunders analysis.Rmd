@@ -1,0 +1,113 @@
+---
+title: "Hillary Clinton Analysis"
+author: "Kevin A. Ryan (JHUAPL)"
+date: "Monday, September 28, 2015"
+output: html_document
+---
+Setup code to enable access to Twitter API.  Explain the process here.  WHat is involved.
+
+```{r eval=FALSE, warning=FALSE}
+library(devtools)
+library(httr)
+library(rjson)
+library(bit64)
+library(twitteR)
+
+download.file(url="http://curl.haxx.se/ca/cacert.pem", destfile="cacert.pem")
+
+consumer_key <- 'cD5uXJMuyJfLkodDvYYchEUuM'
+consumer_secret <- 'FLVzv3HhHnsSr0qRfnq7ZmCdCWrQS24NUbnREUvHNFhEc89bVg'
+access_token <- '740674741-PPuLbrOHGQCYqrh9C9E9AG8I57st4Akj1NBmB2V5'
+access_secret <- 'oxsCu5UE9Q6QVowgd98Ds7qFeJIesI9Z3zGk5qDdP3S4m'
+setup_twitter_oauth(consumer_key,
+                    consumer_secret,
+                    access_token,
+                    access_secret)
+```
+
+
+```{r eval=FALSE}
+## retrieve tweets from Twitter
+library(twitteR)
+Clinton <-userTimeline('HillaryClinton' , n=1500, maxID=NULL, sinceID=NULL, includeRts=TRUE,excludeReplies=TRUE)
+
+# convert tweets to a data frame
+tweets.hc <- twListToDF(Clinton)
+
+#clean up wrap text feature
+for (i in c(1:2, 1500)) {
+cat(paste0("[", i, "] "))
+writeLines(strwrap(tweets.$text[i], 60))
+}
+
+#shortcut for saving tweets to local maching
+write.csv(tweets.hc, file = "clinton")
+```
+
+Build a corpus and clean up 
+```{r}
+#load the file saved locally
+clinton <- read.csv("~/_data/TwitterAnalysis/clinton")
+
+library(tm)
+# build a corpus, and specify the source to be character vectors
+myCorpus <- Corpus(VectorSource(clinton$text))
+# convert to lower case
+myCorpus <- tm_map(myCorpus, content_transformer(tolower))
+
+# remove URLs
+removeURL <- function(x) gsub("http[^[:space:]]*", "", x)
+myCorpus <- tm_map(myCorpus, content_transformer(removeURL))
+
+# remove anything other than English letters or space
+removeNumPunct <- function(x) gsub("[^[:alpha:][:space:]]*", "", x)
+myCorpus <- tm_map(myCorpus, content_transformer(removeNumPunct))
+
+#remove punctuation
+myCorpus <- tm_map(myCorpus, removePunctuation)
+
+#remove numbers
+myCorpus <- tm_map(myCorpus, removeNumbers)
+
+#need to explain the concept of stop words.....
+# add two extra stop words: "available" and "via"
+myStopwords <- c(stopwords('english'), "will", "you", "want", "us")
+
+# remove stopwords from corpus
+myCorpus <- tm_map(myCorpus, removeWords, myStopwords)
+# remove extra whitespace
+myCorpus <- tm_map(myCorpus, stripWhitespace)
+
+# keep a copy of corpus to use later as a dictionary for stem completion
+myCorpusCopy <- myCorpus
+# stem words
+myCorpus <- tm_map(myCorpus, stemDocument)
+```
+
+Stem Completion step
+```{r}
+library(tm)
+myCorpus <- Corpus(VectorSource(myCorpus))
+
+tdm <- TermDocumentMatrix(myCorpus, control = list(wordLengths = c(1, Inf)))
+#inspect(tdm)
+
+x<-subset(tdm, tdm$names = -c("rt"))
+```
+
+Frequent Words and Associations
+```{r}
+(freq.terms <- findFreqTerms(tdm, lowfreq = 35, highfreq = 115))
+term.freq <- rowSums(as.matrix(tdm))
+term.freq <- subset(term.freq, term.freq >= 35)
+term.freq <- subset(term.freq, term.freq <= 115)
+df <- data.frame(term = names(term.freq), freq = term.freq)
+
+library(ggplot2)
+ggplot(df, aes(x = term, y = freq)) + geom_bar(stat = "identity") +
+xlab("Terms") + ylab("Count") + coord_flip()
+
+# which words are associated with 'XXX'?
+findAssocs(tdm, "tax", 0.2)
+
+```
