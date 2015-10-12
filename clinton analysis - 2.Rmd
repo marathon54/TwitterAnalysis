@@ -35,13 +35,6 @@ tweets.hc <- twListToDF(Clinton)# convert tweets to a data frame
                 writeLines(strwrap(tweets.hc$text[i], 60))}
 write.csv(tweets.hc, file = "clinton")#shortcut for saving tweets to local maching
 
-#TRUMP
-Trump <-userTimeline('realdonaldTrump' , n=1500, maxID=NULL, sinceID=NULL, includeRts=TRUE,excludeReplies=TRUE)
-tweets.dt <- twListToDF(Trump)# convert tweets to a data frame
-        for (i in c(1:2, 1500)) { #clean up wrap text feature
-                cat(paste0("[", i, "] "))
-                writeLines(strwrap(tweets.dt$text[i], 60))}
-write.csv(tweets.dt, file = "trump")#shortcut for saving tweets to local maching
 ```
 
 Build a corpus and clean up 
@@ -63,8 +56,6 @@ myCorpus <- tm_map(myCorpus, removeWords, myStopwords)# remove stopwords from co
 myCorpus <- tm_map(myCorpus, stripWhitespace)# remove extra whitespace
 myCorpusCopy <- myCorpus# keep a copy of corpus to use later as a dictionary for stem completion
 myCorpus <- tm_map(myCorpus, stemDocument)# stem words
-
-
 ```
 
 Stem Completion step
@@ -87,9 +78,10 @@ df <- data.frame(term = names(term.freq), freq = term.freq)
 df$term <-factor(df$term, levels=df[order(df$freq), "term"])
 
 library(ggplot2)
+
 y<-ggplot(df, aes(x = term, y = freq)) + geom_bar(stat = "identity") +
 xlab("Terms") + ylab("Count") + coord_flip()
-         grid.arrange(y, y, ncol=2)
+         grid.arrange(y, x, ncol=2)
 
 # which words are associated with the term "tax" ?
 (findAssocs(tdm, "tax", 0.2))
@@ -134,12 +126,18 @@ dtm <- as.DocumentTermMatrix(tdm) #1437 documents
 rowTotals <- apply(dtm , 1, sum) #Find the sum of words in each Document
 dtm.new   <- dtm[rowTotals> 0, ]   #remove all docs without words
 clinton2 <- clinton[1:1437,] 
-lda <- LDA(dtm.new, k = 8)#Latent Dirichlet allocation (LDA)
-(term <- terms(lda, 6))
+lda <- LDA(dtm.new, k = 5)#Latent Dirichlet allocation (LDA)
+(term <- terms(lda, 20))
 term <- apply(term, MARGIN = 2, paste, collapse = ", ")
 topic <- topics(lda, 1)
 topics <- data.frame(date=as.Date(clinton2$created), topic)
 qplot(date, ..count.., data=topics, geom="density",fill=term[topic], position="stack")
+
+qplot(date, ..count.., data=topics, geom="bar",fill=term[topic], position="stack")
+
+ggplot(topics, aes(x = date, y=..count..)) + geom_point() + facet_grid(~ topic)
+
+ggplot(topics, aes(x = date, y=..count..)) + geom_bar() + facet_grid(~ topic)
 ```
 
 

@@ -70,15 +70,15 @@ Frequent Words and Associations
 library(tm)
 library(topicmodels)
 library(gridExtra)
-(freq.terms <- findFreqTerms(tdm, lowfreq = 35, highfreq = 75))
+(freq.terms <- findFreqTerms(tdm, lowfreq = 35, highfreq = 90))
 term.freq <- rowSums(as.matrix(tdm))
 term.freq <- subset(term.freq, term.freq >= 35)
-term.freq <- subset(term.freq, term.freq <= 75)
+term.freq <- subset(term.freq, term.freq <= 90)
 df <- data.frame(term = names(term.freq), freq = term.freq)
 df$term <-factor(df$term, levels=df[order(df$freq), "term"])
 
 library(ggplot2)
-ggplot(df, aes(x = term, y = freq)) + geom_bar(stat = "identity") +
+x<-ggplot(df, aes(x = term, y = freq)) + geom_bar(stat = "identity") +
 xlab("Terms") + ylab("Count") + coord_flip()
 
 # which words are associated with the term "tax" ?
@@ -120,16 +120,21 @@ topic modeling2
 library(tm)
 library(topicmodels)
 library(gridExtra)
+library(ggplot2)
 dtm <- as.DocumentTermMatrix(tdm) #1437 documents
 rowTotals <- apply(dtm , 1, sum) #Find the sum of words in each Document
 dtm.new   <- dtm[rowTotals> 0, ]   #remove all docs without words
-trump2 <- trump[1:1437,] 
-lda <- LDA(dtm.new, k = 8)#Latent Dirichlet allocation (LDA)
-(term <- terms(lda, 6))
+trump2 <- trump[1:1484,] 
+lda <- LDA(dtm.new, k = 5)#Latent Dirichlet allocation (LDA)
+(term <- terms(lda, 10))
 term <- apply(term, MARGIN = 2, paste, collapse = ", ")
 topic <- topics(lda, 1)
 topics <- data.frame(date=as.Date(trump2$created), topic)
-qplot(date, ..count.., data=topics, geom="density",fill=term[topic], position="stack")
+qplot(date, ..count.., data=topics, geom="bar",fill=term[topic], position="stack")
+
+ggplot(topics, aes(date, ..count..)) + geom_bar() + facet_grid(~ topic)
+
+ggplot(topics, aes(x = date, y=..count..)) + geom_bar() + facet_grid(~ topic)
 ```
 
 
