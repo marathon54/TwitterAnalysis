@@ -1,5 +1,5 @@
 ---
-title: "Data Mining in Twitter - Proof of Concept for AFRICOM"
+title: "Data Mining in Twitter - Proof of Concept""
 author: "Kevin A. Ryan (JHUAPL)"
 date: "Monday, September 28, 2015"
 output:
